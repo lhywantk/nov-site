@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>加载中...</title>
+    <meta name="description" content="极简静态导航">
+    
+    <!-- 引入后端数据配置 -->
+    <script src="config.js"></script>
+
+    <style>
+        /* ============================
+           CSS 变量系统
+           ============================ */
+        :root {
+            --bg-body: #f8f9fa;
+            --bg-card: #ffffff;
+            --text-main: #2c3e50;
+            --text-sub: #6c757d;
+            --primary: #0d6efd;
+            --primary-hover: #0b5ed7;
+            --border: #dee2e6;
+            --shadow: 0 4px 12px rgba(0,0,0,0.05);
+            --radius: 12px;
+        }
+
+        [data-theme="dark"] {
+            --bg-body: #121212;
+            --bg-card: #1e1e1e;
+            --text-main: #e9ecef;
+            --text-sub: #adb5bd;
+            --primary: #3d8bfd;
+            --primary-hover: #5aa0ff;
+            --border: #343a40;
+            --shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            transition: background 0.3s, color 0.3s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 布局容器 */
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            flex: 1;
+        }
+
+        /* 顶部 Header */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 30px 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .clock { text-align: left; }
+        .time { font-size: 2.8rem; font-weight: 700; line-height: 1; }
+        .date { color: var(--text-sub); font-size: 1rem; margin-top: 5px; }
+
+        .theme-btn {
+            background: none; border: none; cursor: pointer;
+            font-size: 1.5rem; color: var(--text-main);
+            padding: 10px; border-radius: 50%;
+            transition: background 0.2s;
+        }
+        .theme-btn:hover { background: var(--border); }
+
+        /* 搜索区域 */
+        .search-box {
+            max-width: 600px;
+            margin: 0 auto 50px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            box-shadow: var(--shadow);
+            padding: 5px;
+            transition: all 0.3s;
+        }
+
+        .search-box:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.15);
+        }
+
+        .engine-select {
+            border: none; background: transparent;
+            color: var(--text-main); font-weight: 600;
+            padding: 0 15px; cursor: pointer;
+            outline: none; border-right: 1px solid var(--border);
+        }
+
+        .search-input {
+            flex: 1; border: none; background: transparent;
+            padding: 12px; font-size: 1.1rem;
+            color: var(--text-main); outline: none;
+        }
+
+        .search-btn {
+            width: 44px; height: 44px;
+            border: none; border-radius: 50%;
+            background: var(--primary); color: #fff;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: transform 0.2s;
+        }
+        .search-btn:hover { transform: scale(1.05); background: var(--primary-hover); }
+
+        /* 网格导航 */
+        .category { margin-bottom: 40px; }
+        .category-title {
+            font-size: 1.1rem; color: var(--text-sub);
+            margin-bottom: 15px; padding-left: 10px;
+            border-left: 4px solid var(--primary);
+            font-weight: 600;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            text-align: center;
+            text-decoration: none;
+            color: var(--text-main);
+            transition: all 0.25s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow);
+            border-color: var(--primary);
+        }
+
+        .card-icon {
+            width: 48px; height: 48px;
+            background: rgba(13, 110, 253, 0.1);
+            color: var(--primary);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; font-weight: bold;
+            margin-bottom: 12px;
+        }
+
+        .card-title { font-weight: 600; font-size: 1.05rem; margin-bottom: 4px; }
+        .card-desc { font-size: 0.85rem; color: var(--text-sub); width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* 页脚 */
+        footer { text-align: center; padding: 20px; color: var(--text-sub); font-size: 0.9rem; border-top: 1px solid var(--border); margin-top: auto; }
+
+        /* 移动端 */
+        @media (max-width: 600px) {
+            .time { font-size: 2.2rem; }
+            .grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 15px; }
+            .card { padding: 15px 10px; }
+            .card-icon { width: 40px; height: 40px; font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="clock">
+            <div class="time" id="clock-time">--:--</div>
+            <div class="date" id="clock-date">加载中...</div>
+        </div>
+        <button class="theme-btn" onclick="toggleTheme()" aria-label="切换主题">🌓</button>
+    </header>
+
+    <div class="container">
+        <!-- 搜索模块 -->
+        <div class="search-box">
+            <select id="engine-select" class="engine-select" onchange="updateSearchPlaceholder()">
+                <!-- JS将自动填充搜索引擎选项 -->
+            </select>
+            <input type="text" id="search-input" class="search-input" placeholder="搜索..." autofocus autocomplete="off">
+            <button class="search-btn" onclick="performSearch()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </button>
+        </div>
+
+        <!-- 动态内容挂载点 -->
+        <div id="app-content"></div>
+    </div>
+
+    <footer>
+        <p>© <span id="year"></span> <span id="site-title"></span> | Powered by Static Architecture</p>
+    </footer>
+
+    <script>
+        /**
+         * 前端逻辑控制器
+         * 负责从 BackendData 获取数据并渲染 DOM
+         */
+        
+        // 1. 初始化应用
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof BackendData === 'undefined') {
+                alert('错误：未找到 config.js 文件，请确保后端数据文件已正确引入。');
+                return;
+            }
+            initApp();
+        });
+
+        function initApp() {
+            renderHeader();
+            renderSearchEngines();
+            renderNavigation();
+            startClock();
+            initTheme();
+            
+            // 绑定搜索回车事件
+            document.getElementById('search-input').addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') performSearch();
+            });
+        }
+
+        // 2. 渲染基础信息
+        function renderHeader() {
+            document.title = BackendData.siteConfig.title;
+            document.getElementById('site-title').innerText = BackendData.siteConfig.title;
+            document.getElementById('year').innerText = new Date().getFullYear();
+        }
+
+        // 3. 渲染搜索引擎选择器
+        function renderSearchEngines() {
+            const select = document.getElementById('engine-select');
+            const input = document.getElementById('search-input');
+            
+            BackendData.searchEngines.forEach(eng => {
+                const option = document.createElement('option');
+                option.value = eng.key;
+                option.text = eng.name;
+                select.appendChild(option);
+            });
+
+            // 设置默认引擎
+            select.value = BackendData.siteConfig.defaultSearch;
+            updateSearchPlaceholder();
+        }
+
+        function updateSearchPlaceholder() {
+            const select = document.getElementById('engine-select');
+            const input = document.getElementById('search-input');
+            const engineKey = select.value;
+            const engine = BackendData.searchEngines.find(e => e.key === engineKey);
+            if (engine) {
+                input.placeholder = engine.placeholder;
+            }
+        }
+
+        function performSearch() {
+            const select = document.getElementById('engine-select');
+            const input = document.getElementById('search-input');
+            const query = input.value.trim();
+            
+            if (query) {
+                const engineKey = select.value;
+                const engine = BackendData.searchEngines.find(e => e.key === engineKey);
+                if (engine) {
+                    window.open(engine.url + encodeURIComponent(query), '_blank');
+                }
+            }
+        }
+
+        // 4. 渲染导航卡片 (核心渲染逻辑)
+        function renderNavigation() {
+            const container = document.getElementById('app-content');
+            let html = '';
+
+            BackendData.categories.forEach(cat => {
+                html += `
+                    <div class="category">
+                        <div class="category-title">${cat.name}</div>
+                        <div class="grid">
+                `;
+
+                cat.links.forEach(link => {
+                    html += `
+                        <a href="${link.url}" target="_blank" class="card">
+                            <div class="card-icon">${link.icon}</div>
+                            <div class="card-title">${link.title}</div>
+                            <div class="card-desc">${link.desc}</div>
+                        </a>
+                    `;
+                });
+
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // 5. 时间模块
+        function startClock() {
+            function update() {
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+                const dateStr = now.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'long' });
+                document.getElementById('clock-time').textContent = timeStr;
+                document.getElementById('clock-date').textContent = dateStr;
+            }
+            update();
+            setInterval(update, 1000);
+        }
+
+        // 6. 主题切换
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || BackendData.siteConfig.theme;
+            applyTheme(savedTheme);
+        }
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            applyTheme(next);
+        }
+
+        function applyTheme(theme) {
+            const isDark = theme === 'dark' || (theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        }
+    </script>
+</body>
+</html>
